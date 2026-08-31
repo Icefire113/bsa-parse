@@ -1,0 +1,10 @@
+[package]
+name = "bsa-parse"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { version = "1.0.104", features = ["backtrace"] }
+bitfield = "0.19.5"
+either = "1.18.0"
+thiserror = "2.0.20"
