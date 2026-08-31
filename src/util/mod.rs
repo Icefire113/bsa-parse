@@ -87,7 +87,7 @@ pub(crate) fn read_u32_le<R: Read>(reader: &mut R) -> Result<u32, UtilReadError>
 pub(crate) fn read_u32_be<R: Read>(reader: &mut R) -> Result<u32, UtilReadError> {
     let mut buff = [0u8; size_of::<u32>()];
     reader.read_exact(&mut buff)?;
-    Ok(u32::from_le_bytes(buff))
+    Ok(u32::from_be_bytes(buff))
 }
 
 #[allow(dead_code)]
