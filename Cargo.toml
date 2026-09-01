@@ -6,5 +6,6 @@ edition = "2024"
 [dependencies]
 anyhow = { version = "1.0.104", features = ["backtrace"] }
 bitfield = "0.19.5"
+bitflags = { version = "2.13.1", features = ["std"] }
 either = "1.18.0"
 thiserror = "2.0.20"

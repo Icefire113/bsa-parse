@@ -124,6 +124,37 @@ pub(crate) fn read_string<R: BufRead>(reader: &mut R) -> Result<String, UtilRead
     Ok(String::from_utf8(buff)?)
 }
 
+/// Reads a byte-prefixed string, formatted as:
+/// `<len><str>`
+/// where `len` is a u8, and the next `len` bytes are a null terminated string.
+///
+/// Note that this function will check for utf-8 validity but not the presence of a null terminator (as rust does not need them)
+#[allow(dead_code)]
+pub fn read_bzstring(reader: &mut impl Read) -> Result<String, UtilReadError> {
+    let len: u8 = read_u8_le(reader)?;
+    let mut buff = vec![0u8; len as usize];
+    reader.read_exact(&mut buff)?;
+
+    if buff.pop() != Some('\0' as u8) {
+        return Err(UtilReadError::ExpectedNullTerminator);
+    }
+    Ok(String::from_utf8(buff)?)
+}
+
+/// Reads a byte-prefixed string, formatted as:
+/// `<len><str>`
+/// where `len` is a u8, and the next `len` bytes are a string.
+///
+/// Note that this function will check for utf-8 validity
+#[allow(dead_code)]
+pub fn read_bstring(reader: &mut impl Read) -> Result<String, UtilReadError> {
+    let len: u8 = read_u8_le(reader)?;
+    let mut buff = vec![0u8; len as usize];
+    reader.read_exact(&mut buff)?;
+
+    Ok(String::from_utf8(buff)?)
+}
+
 #[allow(dead_code)]
 /// Reads until a 2 byte pattern is read, returning the bytes read including the pattern
 pub(crate) fn read_until_bytes<R: Read + Seek>(

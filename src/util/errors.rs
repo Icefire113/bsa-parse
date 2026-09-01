@@ -9,4 +9,7 @@ pub enum UtilReadError {
 
     #[error("UTF-8 Parse Error")]
     Utf8ParseError(#[from] FromUtf8Error),
+
+    #[error("Expected null terminator")]
+    ExpectedNullTerminator,
 }
