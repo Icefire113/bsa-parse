@@ -16,4 +16,7 @@ pub enum BsaArchiveError {
 
     #[error("Malformed archive: {}", _0)]
     Malformed(String),
+
+    #[error("Decompress Error: {:?}", _0)]
+    DecompressError(#[from] lz4_flex::block::DecompressError),
 }

@@ -105,7 +105,18 @@ impl BsaCompressedFileBlock {
         size_info: &BsaFileRecordSizeInfo,
         flags: &ArchiveFlags,
     ) -> Result<Self, BsaArchiveError> {
-        todo!()
+        let name: Option<String> = if flags.contains(ArchiveFlags::EMBED_FILE_NAMES) {
+            Some(read_bstring(reader)?)
+        } else {
+            None
+        };
+        let original_size: u32 = read_u32_le(reader)?;
+        let data: Vec<u8> = read_n_bytes(reader, size_info.size as usize)?;
+        Ok(Self {
+            name,
+            original_size,
+            data,
+        })
     }
 }
 

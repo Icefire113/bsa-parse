@@ -1,11 +1,12 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufReader, Seek},
+    io::{BufReader, Read, Seek},
     path::Path,
 };
 
 use either::Either;
+use lz4_flex::frame::FrameDecoder;
 
 use crate::{
     bsa::{
@@ -80,7 +81,21 @@ impl BsaArchive {
 
     pub fn get_file(&mut self, file: &str) -> Result<Vec<u8>, BsaArchiveError> {
         match self.read_file_block(file)? {
-            Either::Left(compressed_block) => todo!(),
+            Either::Left(compressed_block) => {
+                if compressed_block.data.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
+                    // frame format
+                    let mut decompressed: Vec<u8> =
+                        Vec::with_capacity(compressed_block.original_size as usize);
+                    let x: &[u8] = &compressed_block.data;
+                    FrameDecoder::new(x).read_to_end(&mut decompressed)?;
+                    Ok(decompressed)
+                } else {
+                    Ok(lz4_flex::decompress(
+                        &compressed_block.data,
+                        compressed_block.original_size as usize,
+                    )?)
+                }
+            }
             Either::Right(uncompressed_block) => Ok(uncompressed_block.data),
         }
     }

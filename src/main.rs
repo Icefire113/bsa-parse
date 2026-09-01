@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
     let duration = start.elapsed();
     println!("Took {:?} to parse archive", duration);
 
-    let bytes = file.get_file("interface\\marketplace\\buttons\\pc\\pc_ent.png")?;
+    let bytes = file.get_file("textures\\actors\\alduin\\alduin.dds")?;
     let mut f = File::options()
         .read(true)
         .write(true)
