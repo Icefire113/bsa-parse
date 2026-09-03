@@ -1,4 +1,6 @@
-use crate::{bsa::hash::BsaHash, util};
+use common_util::errors::UtilReadError;
+
+use crate::bsa::hash::BsaHash;
 
 #[derive(Debug, thiserror::Error)]
 pub enum BsaArchiveError {
@@ -6,7 +8,7 @@ pub enum BsaArchiveError {
     Io(#[from] std::io::Error),
 
     #[error("Read Error: {:?}", _0)]
-    ReadError(#[from] util::errors::UtilReadError),
+    ReadError(#[from] UtilReadError),
 
     #[error("Invalid Magic: {:#?}", _0)]
     InvalidMagic([u8; 4]),

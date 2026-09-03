@@ -1,8 +1,9 @@
 use std::{collections::HashMap, io::Read};
 
-use crate::{
-    bsa::{error::BsaArchiveError, folder::BsaFolderRecord, hash::BsaHash, header::ArchiveFlags},
-    util::{read_bstring, read_bzstring, read_n_bytes, read_u32_le, read_u64_le},
+use common_util::bin_read::{read_bstring, read_bzstring, read_n_bytes, read_u32_le, read_u64_le};
+
+use crate::bsa::{
+    error::BsaArchiveError, folder::BsaFolderRecord, hash::BsaHash, header::ArchiveFlags,
 };
 
 #[derive(Debug)]

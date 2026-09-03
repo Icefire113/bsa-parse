@@ -5,18 +5,16 @@ use std::{
     path::Path,
 };
 
+use common_util::bin_read::read_string;
 use either::Either;
 use lz4_flex::frame::FrameDecoder;
 
-use crate::{
-    bsa::{
-        error::{BsaArchiveError, Lz4DecompressError},
-        files::{BsaCompressedFileBlock, BsaFileRecordBlock, BsaUncompressedFileBlock},
-        folder::BsaFolderRecord,
-        hash::BsaHash,
-        header::{ArchiveFlags, BsaHeader, FileFlags},
-    },
-    util::read_string,
+use crate::bsa::{
+    error::{BsaArchiveError, Lz4DecompressError},
+    files::{BsaCompressedFileBlock, BsaFileRecordBlock, BsaUncompressedFileBlock},
+    folder::BsaFolderRecord,
+    hash::BsaHash,
+    header::{ArchiveFlags, BsaHeader, FileFlags},
 };
 
 pub mod error;

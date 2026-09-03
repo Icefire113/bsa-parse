@@ -9,6 +9,5 @@
 //! ```
 
 pub mod bsa;
-pub mod util;
 
 pub use bsa::BsaArchive;

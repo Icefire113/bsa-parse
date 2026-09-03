@@ -1,11 +1,9 @@
 use std::io::Read;
 
 use bitflags::bitflags;
+use common_util::bin_read::{read_n_bytes_const, read_u16_le, read_u32_le};
 
-use crate::{
-    bsa::error::BsaArchiveError,
-    util::{read_n_bytes_const, read_u16_le, read_u32_le},
-};
+use crate::bsa::error::BsaArchiveError;
 
 const HEADER_MAGIC: [u8; 4] = *b"BSA\0";
 

@@ -1,9 +1,8 @@
 use std::io::Read;
 
-use crate::{
-    bsa::{error::BsaArchiveError, hash::BsaHash},
-    util::{read_u32_le, read_u64_le},
-};
+use common_util::bin_read::{read_u32_le, read_u64_le};
+
+use crate::bsa::{error::BsaArchiveError, hash::BsaHash};
 
 #[derive(Debug)]
 pub struct BsaFolderRecord {

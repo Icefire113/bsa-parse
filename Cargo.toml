@@ -9,6 +9,9 @@ bitflags = { version = "2.13.1", features = ["std"] }
 either = "1.18.0"
 lz4_flex = "0.14.0"
 thiserror = "2.0.20"
+common-util = { git = "https://github.com/Icefire113/common-util", default-features = false, features = [
+    "bin_read",
+] }
 
 [dev-dependencies]
 anyhow = { version = "1.0.104", features = ["backtrace"] }

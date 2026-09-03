@@ -41,8 +41,17 @@ dependencies = [
  "anyhow",
  "bitfield",
  "bitflags",
+ "common-util",
  "either",
  "lz4_flex",
+ "thiserror",
+]
+
+[[package]]
+name = "common-util"
+version = "0.1.1"
+source = "git+https://github.com/Icefire113/common-util#2a2967f9a516539b061871cdee5909f50aa7589b"
+dependencies = [
  "thiserror",
 ]
 
