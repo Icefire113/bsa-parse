@@ -10,11 +10,11 @@ use lz4_flex::frame::FrameDecoder;
 
 use crate::{
     bsa::{
-        error::BsaArchiveError,
+        error::{BsaArchiveError, Lz4DecompressError},
         files::{BsaCompressedFileBlock, BsaFileRecordBlock, BsaUncompressedFileBlock},
         folder::BsaFolderRecord,
         hash::BsaHash,
-        header::{ArchiveFlags, BsaHeader},
+        header::{ArchiveFlags, BsaHeader, FileFlags},
     },
     util::read_string,
 };
@@ -34,7 +34,8 @@ pub struct BsaArchive {
     folders: HashMap<BsaHash, BsaFolderRecord>,
     /// Map of folder name hashes to the things in that folder
     file_blocks: HashMap<BsaHash, BsaFileRecordBlock>,
-    filename_list: Vec<String>,
+    /// A mapping of file name hashes to file names, useful for knowing what files are in this archive
+    filename_map: HashMap<BsaHash, String>,
 }
 
 impl BsaArchive {
@@ -64,10 +65,13 @@ impl BsaArchive {
             let block = BsaFileRecordBlock::parse(&mut file, &folders)?;
             file_blocks.insert(BsaHash::from_path(&block.folder_name, true), block);
         }
-        let mut filename_list: Vec<String> = Vec::new();
-        let mut br = BufReader::new(&file);
+
+        // only present when ArchiveFlags::INCLUDE_FILE_NAMES is set
+        let mut filename_map: HashMap<BsaHash, String> = HashMap::new();
+        let mut br: BufReader<&File> = BufReader::new(&file);
         for _ in 0..header.file_count {
-            filename_list.push(read_string(&mut br)?);
+            let file_name = read_string(&mut br)?;
+            filename_map.insert(BsaHash::from_path(&file_name, false), file_name);
         }
 
         Ok(Self {
@@ -75,48 +79,108 @@ impl BsaArchive {
             header,
             folders,
             file_blocks,
-            filename_list,
+            filename_map,
         })
     }
 
-    pub fn get_file(&mut self, file: &str) -> Result<Vec<u8>, BsaArchiveError> {
-        match self.read_file_block(file)? {
-            Either::Left(compressed_block) => {
-                if compressed_block.data.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
-                    // frame format
-                    let mut decompressed: Vec<u8> =
-                        Vec::with_capacity(compressed_block.original_size as usize);
-                    let x: &[u8] = &compressed_block.data;
-                    FrameDecoder::new(x).read_to_end(&mut decompressed)?;
-                    Ok(decompressed)
-                } else {
-                    Ok(lz4_flex::decompress(
-                        &compressed_block.data,
-                        compressed_block.original_size as usize,
-                    )?)
-                }
-            }
+    pub fn iter_full_filenames(&self) -> impl Iterator<Item = String> {
+        self.file_blocks
+            .values()
+            .map(|b| {
+                b.file_records.keys().map(|file_name_hash| {
+                    b.folder_name.clone() + "\\" + &self.filename_map[file_name_hash].to_string()
+                })
+            })
+            .flatten()
+    }
+
+    /// Iterates over the file names in this archive
+    pub fn iter_filenames(&self) -> impl Iterator<Item = &String> {
+        self.filename_map.values()
+    }
+
+    /// Iterates over the file blocks in this archive, note that despite the name,
+    /// this actally iterates over the FOLDERS in this archive
+    /// (as well as some of the metadata about the files in those folders)
+    pub fn iter_file_blocks(&self) -> impl Iterator<Item = &BsaFileRecordBlock> {
+        self.file_blocks.values()
+    }
+
+    /// Iterates over the folder records in this archive
+    ///
+    /// Basically just the folders in this archive
+    pub fn iter_folder_records(&self) -> impl Iterator<Item = &BsaFolderRecord> {
+        self.folders.values()
+    }
+
+    /// Number of files in this archive
+    pub fn file_count(&self) -> u32 {
+        self.header.file_count
+    }
+
+    /// Number of folders in this archive
+    pub fn folder_count(&self) -> u32 {
+        self.header.folder_count
+    }
+
+    /// Archive file flags
+    pub fn file_flags(&self) -> FileFlags {
+        self.header.file_flags
+    }
+
+    /// Archive flags
+    pub fn archive_flags(&self) -> ArchiveFlags {
+        self.header.archive_flags
+    }
+
+    /// Gets a file from the archive, performs path normalization
+    pub fn get_file(&self, file_path: &str) -> Result<Vec<u8>, BsaArchiveError> {
+        // normalize path
+        let file_path = file_path.replace("/", "\\").to_ascii_lowercase();
+        let (folder, file_name) = file_path
+            .rsplit_once("\\")
+            .ok_or(BsaArchiveError::CannotGetTopLevelFile)?;
+
+        match self.read_file_block(folder, file_name)? {
+            Either::Left(compressed_block) => Ok(Self::lz4_decompress(
+                &compressed_block.data,
+                compressed_block.original_size as usize,
+            )?),
             Either::Right(uncompressed_block) => Ok(uncompressed_block.data),
         }
     }
 
+    /// Helper to decompress lz4 blocks, handles both frame and block decompression
+    fn lz4_decompress(src: &[u8], decompressed_size: usize) -> Result<Vec<u8>, Lz4DecompressError> {
+        if src.starts_with(&[0x04, 0x22, 0x4D, 0x18]) {
+            let mut buf = Vec::with_capacity(decompressed_size);
+            FrameDecoder::new(src).read_to_end(&mut buf)?;
+            Ok(buf)
+        } else {
+            Ok(lz4_flex::decompress(src, decompressed_size)?)
+        }
+    }
+
     fn read_file_block(
-        &mut self,
+        &self,
+        folder: &str,
         file: &str,
     ) -> Result<Either<BsaCompressedFileBlock, BsaUncompressedFileBlock>, BsaArchiveError> {
-        let (path, file_name) = file
-            .rsplit_once("\\")
-            .expect("Ill handle errors later, i want to go to bed");
+        let folder_hash = BsaHash::from_path(folder, true);
+        let file_hash = BsaHash::from_path(file, false);
 
-        let folder_hash = BsaHash::from_path(path, true);
-        let file_hash = BsaHash::from_path(file_name, false);
+        let folder_rec = self
+            .file_blocks
+            .get(&folder_hash)
+            .ok_or(BsaArchiveError::FolderNotFound(folder_hash))?;
+        let file_rec = folder_rec
+            .file_records
+            .get(&file_hash)
+            .ok_or(BsaArchiveError::FolderNotFound(file_hash))?;
 
-        let rec = self.file_blocks.get(&folder_hash).expect("NOT THERE");
-        let file_rec = rec.file_records.get(&file_hash).expect("no file :(");
-
-        let mut br = BufReader::new(&self.file);
+        let mut br: BufReader<&File> = BufReader::new(&self.file);
         br.seek(std::io::SeekFrom::Start(file_rec.offset as u64))
-            .expect("file too small");
+            .map_err(BsaArchiveError::CannotReadFile)?;
 
         let is_compressed = self
             .header

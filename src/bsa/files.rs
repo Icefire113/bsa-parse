@@ -49,6 +49,9 @@ pub struct BsaFileRecord {
     /// If the file is compressed the file data will have the specification of Compressed File block.
     /// In addition, the size of compressed data is considered to be the ulong "original size" plus the
     /// compressed data size (4 + compressed size).
+    ///
+    /// `size` is the total length of the file data block, which when `EMBED_FILE_NAMES` is set also
+    /// includes the bstring file name (length byte + string).
     pub size_info: BsaFileRecordSizeInfo,
 
     /// Offset to raw file data for this folder. Note that an "offset" is offset from file byte zero (start), NOT from this location.
@@ -57,8 +60,8 @@ pub struct BsaFileRecord {
 
 #[derive(Debug)]
 pub struct BsaFileRecordSizeInfo {
-    pub invert_default_compression: bool,
     size: u32,
+    pub invert_default_compression: bool,
 }
 
 impl From<u32> for BsaFileRecordSizeInfo {
@@ -105,13 +108,16 @@ impl BsaCompressedFileBlock {
         size_info: &BsaFileRecordSizeInfo,
         flags: &ArchiveFlags,
     ) -> Result<Self, BsaArchiveError> {
-        let name: Option<String> = if flags.contains(ArchiveFlags::EMBED_FILE_NAMES) {
-            Some(read_bstring(reader)?)
+        let (name, name_len) = if flags.contains(ArchiveFlags::EMBED_FILE_NAMES) {
+            let name = read_bstring(reader)?;
+            let name_len = 1 + name.len();
+            (Some(name), name_len)
         } else {
-            None
+            (None, 0)
         };
         let original_size: u32 = read_u32_le(reader)?;
-        let data: Vec<u8> = read_n_bytes(reader, size_info.size as usize)?;
+        let compressed_len = size_info.size as usize - 4 - name_len;
+        let data: Vec<u8> = read_n_bytes(reader, compressed_len)?;
         Ok(Self {
             name,
             original_size,
@@ -133,12 +139,14 @@ impl BsaUncompressedFileBlock {
         size_info: &BsaFileRecordSizeInfo,
         flags: &ArchiveFlags,
     ) -> Result<Self, BsaArchiveError> {
-        let name: Option<String> = if flags.contains(ArchiveFlags::EMBED_FILE_NAMES) {
-            Some(read_bstring(reader)?)
+        let (name, name_len) = if flags.contains(ArchiveFlags::EMBED_FILE_NAMES) {
+            let name = read_bstring(reader)?;
+            let name_len = 1 + name.len();
+            (Some(name), name_len)
         } else {
-            None
+            (None, 0)
         };
-        let data: Vec<u8> = read_n_bytes(reader, size_info.size as usize)?;
+        let data: Vec<u8> = read_n_bytes(reader, size_info.size as usize - name_len)?;
 
         Ok(Self { name, data })
     }
