@@ -105,9 +105,9 @@ impl From<u64> for BsaHash {
     }
 }
 
-impl Into<u64> for BsaHash {
-    fn into(self) -> u64 {
-        (self.high as u64) << 32 | self.low as u64
+impl From<BsaHash> for u64 {
+    fn from(value: BsaHash) -> Self {
+        (value.high as u64) << 32 | value.low as u64
     }
 }
 

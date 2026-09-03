@@ -14,7 +14,9 @@ pub struct BsaHeader {
     pub archive_flags: ArchiveFlags,
     pub folder_count: u32,
     pub file_count: u32,
+    #[allow(unused)]
     pub total_folder_name_len: u32,
+    #[allow(unused)]
     pub total_file_name_len: u32,
     pub file_flags: FileFlags,
 }
@@ -101,14 +103,17 @@ impl BsaHeader {
 
         Ok(Self {
             archive_flags: ArchiveFlags::from_bits(archive_flags).ok_or(
-                BsaArchiveError::Malformed(format!("Unknown bits set in archive_flags")),
+                BsaArchiveError::Malformed(format!(
+                    "Unknown bits set in archive_flags {:?}",
+                    archive_flags
+                )),
             )?,
             folder_count,
             file_count,
             total_folder_name_len,
             total_file_name_len,
             file_flags: FileFlags::from_bits(file_flags).ok_or(BsaArchiveError::Malformed(
-                format!("Unknown bits set in file_flags"),
+                format!("Unknown bits set in file_flags {:?}", file_flags),
             ))?,
         })
     }

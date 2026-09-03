@@ -95,7 +95,8 @@ impl BsaFileRecord {
 
 #[derive(Debug)]
 pub struct BsaCompressedFileBlock {
-    // Full path and name of the file. Only present if Bit 9 of archiveFlags is set.
+    /// Full path and name of the file. Only present if Bit 9 of archiveFlags is set.
+    #[allow(unused)]
     pub(crate) name: Option<String>,
     pub(crate) original_size: u32,
     /// lz4 compressed data (zlib on SE)
@@ -128,7 +129,8 @@ impl BsaCompressedFileBlock {
 
 #[derive(Debug)]
 pub struct BsaUncompressedFileBlock {
-    // Full path and name of the file. Only present if Bit 9 of archiveFlags is set.
+    /// Full path and name of the file. Only present if Bit 9 of archiveFlags is set.
+    #[allow(unused)]
     pub(crate) name: Option<String>,
     pub(crate) data: Vec<u8>,
 }

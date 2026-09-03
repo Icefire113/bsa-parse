@@ -84,14 +84,11 @@ impl BsaArchive {
     }
 
     pub fn iter_full_filenames(&self) -> impl Iterator<Item = String> {
-        self.file_blocks
-            .values()
-            .map(|b| {
-                b.file_records.keys().map(|file_name_hash| {
-                    b.folder_name.clone() + "\\" + &self.filename_map[file_name_hash].to_string()
-                })
+        self.file_blocks.values().flat_map(|b| {
+            b.file_records.keys().map(|file_name_hash| {
+                b.folder_name.clone() + "\\" + &self.filename_map[file_name_hash].to_string()
             })
-            .flatten()
+        })
     }
 
     /// Iterates over the file names in this archive
@@ -176,7 +173,7 @@ impl BsaArchive {
         let file_rec = folder_rec
             .file_records
             .get(&file_hash)
-            .ok_or(BsaArchiveError::FolderNotFound(file_hash))?;
+            .ok_or(BsaArchiveError::FileNotFound(file_hash))?;
 
         let mut br: BufReader<&File> = BufReader::new(&self.file);
         br.seek(std::io::SeekFrom::Start(file_rec.offset as u64))

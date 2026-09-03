@@ -2,10 +2,7 @@ use std::env::args;
 
 use anyhow::Context;
 
-use crate::bsa::BsaArchive;
-
-mod bsa;
-mod util;
+use bsa_parse::BsaArchive;
 
 fn main() -> anyhow::Result<()> {
     let path = args().nth(1).context("Usage: bsa-parse <bsa_file>")?;
